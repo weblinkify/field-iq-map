@@ -76,12 +76,13 @@ const toggle = <T>(list: readonly T[], item: T): T[] =>
         <select
           class="rounded-md border border-slate-700 bg-slate-800 px-2 py-1 text-slate-100"
           data-testid="filter-region"
-          [value]="filter().regions[0] ?? ''"
           (change)="setRegion($any($event.target).value)"
         >
-          <option value="">All regions</option>
+          <option value="" [selected]="filter().regions.length === 0">All regions</option>
           @for (r of regions(); track r.region) {
-            <option [value]="r.region">{{ r.region }} ({{ r.sensorCount }})</option>
+            <option [value]="r.region" [selected]="filter().regions[0] === r.region">
+              {{ r.region }} ({{ r.sensorCount }})
+            </option>
           }
         </select>
       </label>

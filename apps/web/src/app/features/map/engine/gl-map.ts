@@ -118,6 +118,22 @@ export function clusterExpansionZoom(
   });
 }
 
+/**
+ * Replaces the style and resolves once the NEW style has loaded. The listener is registered before
+ * setStyle: isStyleLoaded() right after setStyle still reports the old style, and layers added
+ * then would be discarded when the new style arrives.
+ */
+export function swapStyle(map: GlMap, style: unknown): Promise<void> {
+  const loaded = new Promise<void>((resolve) => map.once('style.load', () => resolve()));
+  (map as unknown as { setStyle(style: unknown, options?: { diff: boolean }): void }).setStyle(
+    style,
+    {
+      diff: false,
+    },
+  );
+  return loaded;
+}
+
 /** Waits until the style is ready for addSource/addLayer. */
 export function whenStyleLoaded(map: GlMap): Promise<void> {
   return new Promise((resolve) => {

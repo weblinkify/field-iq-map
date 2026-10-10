@@ -1,4 +1,10 @@
-import { whenStyleLoaded, type CreateMapOptions, type GlMap, type MapEngine } from './gl-map';
+import {
+  swapStyle,
+  whenStyleLoaded,
+  type CreateMapOptions,
+  type GlMap,
+  type MapEngine,
+} from './gl-map';
 import { MAPBOX_FONT_STACK, mapboxStyleUrl } from './styles';
 
 /** Mapbox GL JS, used when MAPBOX_TOKEN holds a public (pk.*) token. */
@@ -29,7 +35,6 @@ export class MapboxEngine implements MapEngine {
   }
 
   async setBasemap(map: GlMap, dark: boolean): Promise<void> {
-    (map as unknown as { setStyle(style: string): void }).setStyle(mapboxStyleUrl(dark));
-    await whenStyleLoaded(map);
+    await swapStyle(map, mapboxStyleUrl(dark));
   }
 }

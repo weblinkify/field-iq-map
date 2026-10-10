@@ -112,3 +112,77 @@ jobs:
       - run: npm run typecheck
       - run: npm test -- --coverage
       - run: npm run build
+
+  contract:
+    name: Contract (mock vs real)
+    needs: [api, mock-api]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: services/mock-api/package-lock.json
+      - name: Start PostGIS, API and mock API
+        run: docker compose up -d --build --wait postgis api mock-api
+      - working-directory: services/mock-api
+        run: npm ci
+      - name: Same operations against both, compare shapes and values
+        working-directory: services/mock-api
+        env:
+          MOCK_URL: http://localhost:4000
+          REAL_URL: http://localhost:8081
+        run: npm run test:contract
+      - name: Container logs
+        if: failure()
+        run: docker compose logs --no-color
+      - if: always()
+        run: docker compose --profile mock --profile real down -v
+
+  e2e:
+    name: E2E (${{ matrix.mode }})
+    needs: [api, web, mock-api]
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [mock, real]
+    env:
+      NG_CONFIG: e2e
+      BASEMAP: offline
+      # Optional: with the secret the Mapbox engine is used; CI passes without it (MapLibre).
+      MAPBOX_TOKEN: ${{ secrets.MAPBOX_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - name: Start the ${{ matrix.mode }} stack
+        run: docker compose --profile ${{ matrix.mode }} up -d --build --wait
+      - working-directory: e2e
+        run: npm ci
+      - working-directory: e2e
+        run: npx playwright install --with-deps chromium
+      - name: Playwright (Chromium + SwiftShader WebGL)
+        working-directory: e2e
+        env:
+          E2E_MODE: ${{ matrix.mode }}
+          BASE_URL: http://localhost:8080
+        run: npx playwright test
+      - name: Upload Playwright report, traces and screenshots
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-${{ matrix.mode }}
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+          retention-days: 7
+      - name: Container logs
+        if: failure()
+        run: docker compose --profile ${{ matrix.mode }} logs --no-color
+      - if: always()
+        run: docker compose --profile ${{ matrix.mode }} down -v

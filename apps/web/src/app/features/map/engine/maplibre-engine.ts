@@ -1,5 +1,11 @@
 import type { Basemap } from '../../../core/runtime-config';
-import { whenStyleLoaded, type CreateMapOptions, type GlMap, type MapEngine } from './gl-map';
+import {
+  swapStyle,
+  whenStyleLoaded,
+  type CreateMapOptions,
+  type GlMap,
+  type MapEngine,
+} from './gl-map';
 import { LOCAL_FONT_STACK, maplibreStyle, OPENFREEMAP_FONT_STACK } from './styles';
 
 /** Free/offline fallback engine: MapLibre GL JS, no token required. */
@@ -13,7 +19,10 @@ export class MaplibreEngine implements MapEngine {
   async create(o: CreateMapOptions): Promise<GlMap> {
     const maplibregl = await import('maplibre-gl');
     // The worker ships as a static asset so it resolves the same way in dev, prod and Docker.
-    maplibregl.setWorkerUrl(`${location.origin}/maplibre/maplibre-gl-worker.mjs`);
+    // Versioned URL so a stale cached copy (e.g. served with a wrong MIME type) is never reused.
+    maplibregl.setWorkerUrl(
+      `${location.origin}/maplibre/maplibre-gl-worker.mjs?v=${maplibregl.getVersion()}`,
+    );
     const map = new maplibregl.Map({
       container: o.container,
       style: maplibreStyle(o.dark, o.basemap, location.origin) as never,
@@ -32,9 +41,6 @@ export class MaplibreEngine implements MapEngine {
   }
 
   async setBasemap(map: GlMap, dark: boolean, basemap: Basemap): Promise<void> {
-    (map as unknown as { setStyle(style: unknown): void }).setStyle(
-      maplibreStyle(dark, basemap, location.origin),
-    );
-    await whenStyleLoaded(map);
+    await swapStyle(map, maplibreStyle(dark, basemap, location.origin));
   }
 }
