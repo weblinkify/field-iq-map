@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 # FieldIQ mock API — build context: repository root (needs shared/).
 
-FROM node:24-alpine AS build
+FROM node:25-alpine AS build
 WORKDIR /app
 COPY services/mock-api/package.json services/mock-api/package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci
@@ -9,7 +9,7 @@ COPY services/mock-api/tsconfig.json services/mock-api/tsconfig.build.json ./
 COPY services/mock-api/src ./src
 RUN npm run build && npm prune --omit=dev
 
-FROM node:24-alpine
+FROM node:25-alpine
 LABEL org.opencontainers.image.title="fieldiq-mock-api" \
       org.opencontainers.image.description="FieldIQ v2 mock API (same GraphQL + REST contract, fixture-backed)" \
       org.opencontainers.image.source="https://github.com/weblinkify/field-iq-map"
