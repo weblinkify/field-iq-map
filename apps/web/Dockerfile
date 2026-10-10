@@ -2,7 +2,7 @@
 # FieldIQ web — Angular build served by unprivileged nginx. Build context: repository root.
 # One image serves mock and live mode: /env.js is generated at container start from env vars.
 
-FROM node:24-alpine AS build
+FROM node:25-alpine AS build
 ARG NG_CONFIG=production
 WORKDIR /src/apps/web
 COPY apps/web/package.json apps/web/package-lock.json ./
