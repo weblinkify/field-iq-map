@@ -1,4 +1,5 @@
 import {
+  flatPointOpacity,
   bboxFeatures,
   CLUSTER_PROPERTIES,
   fieldIqLayers,
