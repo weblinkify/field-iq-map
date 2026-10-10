@@ -1,8 +1,0 @@
-{
-  "name": "fieldiq-v2",
-  "private": true,
-  "description": "Root manifest for Vercel (Node version). Each app has its own package.json.",
-  "engines": {
-    "node": "24.x"
-  }
-}

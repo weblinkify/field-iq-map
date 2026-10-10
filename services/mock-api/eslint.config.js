@@ -2,8 +2,12 @@ import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist', 'coverage', 'src/generated'] },
+  { ignores: ['dist', 'coverage', 'src/generated', '.shared'] },
   js.configs.recommended,
+  {
+    files: ['**/*.mjs'],
+    languageOptions: { globals: { process: 'readonly', URL: 'readonly', console: 'readonly' } },
+  },
   ...tseslint.configs.strict,
   {
     rules: {

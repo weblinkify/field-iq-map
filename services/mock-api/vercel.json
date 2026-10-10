@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm ci",
+  "buildCommand": "node scripts/copy-shared.mjs && npm run build",
+  "outputDirectory": "public",
+  "functions": {
+    "api/index.mjs": {
+      "memory": 1024,
+      "maxDuration": 10,
+      "includeFiles": "{.shared/**,dist/**}"
+    }
+  },
+  "rewrites": [{ "source": "/:path*", "destination": "/api/index?__route=:path*" }]
+}
