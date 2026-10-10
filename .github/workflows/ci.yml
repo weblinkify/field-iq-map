@@ -58,7 +58,7 @@ jobs:
           git diff --exit-code -- ../../shared/openapi/openapi.yaml src/test/resources/snapshots/
       - name: Upload JaCoCo report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: jacoco-report
           path: services/api/target/site/jacoco/
@@ -174,7 +174,7 @@ jobs:
         run: npx playwright test
       - name: Upload Playwright report, traces and screenshots
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-${{ matrix.mode }}
           path: |
