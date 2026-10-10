@@ -109,7 +109,9 @@ export class DevicesPage {
   protected readonly ago = relativeTime;
 
   constructor() {
-    toObservable(this.search).subscribe(() => this.cursors.set([]));
+    toObservable(this.search).subscribe(() => {
+      if (this.cursors().length) this.cursors.set([]);
+    });
   }
 
   protected next(cursor: string | null): void {

@@ -15,8 +15,9 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { map, startWith, switchMap, timer } from 'rxjs';
-import { SensorsRestService } from '../../api/rest/sensors-rest.service';
+import { SensorsRestService, type BBox } from '../../api/rest/sensors-rest.service';
 import { formatCount } from '../../core/format';
+import { Icon } from '../../shared/icon';
 import { RUNTIME_CONFIG } from '../../core/runtime-config';
 import { environment } from '../../../environments/environment';
 import { FINLAND_BOUNDS } from './engine/styles';
@@ -24,9 +25,11 @@ import type { GlMap } from './engine/gl-map';
 import { MAP_ENGINE } from './engine/map-engine.provider';
 import { MapController, type HoverState } from './map-controller';
 import { toMapFeatures, type MapFeatureCollection } from './state/features';
-import { buildFilterExpression, matchesFilter } from './state/map-filter';
+import { buildFilterExpression, matchesFilter, type MapFilter } from './state/map-filter';
 import { tooltipText } from './state/tooltip';
 import { parseUrlState, toQueryParams, type LayerMode, type MapUrlState } from './state/url-state';
+import { AreaStatsPanel } from './ui/area-stats-panel';
+import { FilterBar } from './ui/filter-bar';
 import { MapLegend } from './ui/map-legend';
 import { MapTooltip } from './ui/map-tooltip';
 import { SensorDetailPanel } from './ui/sensor-detail-panel';
@@ -53,8 +56,8 @@ const REFRESH_MS = 60_000;
 @Component({
   selector: 'app-map-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [MapTooltip, SensorDetailPanel, MapLegend],
-  host: { class: 'absolute inset-0' },
+  imports: [MapTooltip, SensorDetailPanel, MapLegend, FilterBar, AreaStatsPanel, Icon],
+  host: { class: 'absolute inset-0', '(document:keydown.escape)': 'cancelSelect()' },
   template: `
     <div class="relative flex h-full overflow-hidden">
       <h1 class="sr-only">Sensor map</h1>
@@ -79,13 +82,48 @@ const REFRESH_MS = 60_000;
           />
         </div>
 
-        <p
-          class="absolute left-3 top-3 z-10 rounded-md bg-ink-900/90 px-2.5 py-1 text-xs text-slate-300 ring-1 ring-slate-700"
-          data-testid="visible-count"
-          aria-live="polite"
+        <div
+          class="pointer-events-none absolute inset-x-3 top-3 z-10 flex flex-wrap items-start justify-between gap-2"
         >
-          Showing {{ count(visibleCount()) }} of {{ count(totalCount()) }} sensors
-        </p>
+          <div class="pointer-events-auto flex max-w-full flex-col items-start gap-2">
+            <app-filter-bar [filter]="state().filter" (changed)="setFilter($event)" />
+            <p
+              class="rounded-md bg-ink-900/90 px-2.5 py-1 text-xs text-slate-300 ring-1 ring-slate-700"
+              data-testid="visible-count"
+              aria-live="polite"
+            >
+              Showing {{ count(visibleCount()) }} of {{ count(totalCount()) }} sensors
+            </p>
+          </div>
+          <div class="pointer-events-auto flex gap-2 text-xs">
+            @if (searchAreaVisible()) {
+              <button
+                type="button"
+                class="flex items-center gap-1.5 rounded-lg bg-indigo-500 px-3 py-2 font-medium text-white shadow-lg hover:bg-indigo-400"
+                data-testid="search-area"
+                (click)="searchThisArea()"
+              >
+                <app-icon name="search" [size]="14" /> Search this area
+              </button>
+            }
+            <button
+              type="button"
+              class="flex items-center gap-1.5 rounded-lg px-3 py-2 font-medium shadow-lg ring-1"
+              [class]="
+                selectMode()
+                  ? 'bg-indigo-500 text-white ring-indigo-300'
+                  : 'bg-ink-900/90 text-slate-200 ring-slate-700 hover:bg-slate-800'
+              "
+              [attr.aria-pressed]="selectMode()"
+              data-testid="select-area"
+              title="Draw a rectangle (or hold Shift and drag)"
+              (click)="toggleSelect()"
+            >
+              <app-icon name="select" [size]="14" />
+              {{ selectMode() ? 'Drag to select…' : 'Select area' }}
+            </button>
+          </div>
+        </div>
 
         @if (error(); as e) {
           <p
@@ -105,6 +143,16 @@ const REFRESH_MS = 60_000;
       @if (state().sensor; as id) {
         <div class="absolute inset-y-0 right-0 z-30 w-full sm:static sm:w-auto">
           <app-sensor-detail-panel [sensorId]="id" (closed)="selectSensor(null)" />
+        </div>
+      } @else if (state().bbox; as bbox) {
+        <div class="absolute inset-y-0 right-0 z-30 w-full sm:static sm:w-auto">
+          <app-area-stats-panel
+            [bbox]="bbox"
+            [filter]="state().filter"
+            (cleared)="setBBox(null)"
+            (zoomTo)="zoomToSelection()"
+            (sensorSelected)="selectSensor($event)"
+          />
         </div>
       }
     </div>
@@ -128,6 +176,9 @@ export class MapPage implements AfterViewInit {
   protected readonly ready = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly containerWidth = signal(1024);
+  protected readonly selectMode = signal(false);
+  protected readonly searchAreaVisible = signal(false);
+  private initialFitDone = false;
   private readonly controller = signal<MapController | null>(null);
   private readonly all = signal<MapFeatureCollection | null>(null);
   private flownTo: string | null = null;
@@ -195,12 +246,14 @@ export class MapPage implements AfterViewInit {
         {
           hover: (h) => this.zone.run(() => this.onHover(h)),
           sensorSelected: (id) => this.zone.run(() => this.selectSensor(id, false)),
-          bboxChanged: () => undefined,
-          selectModeEnded: () => undefined,
-          moved: () => undefined,
+          bboxChanged: (b, final) => final && this.zone.run(() => this.setBBox(b)),
+          selectModeEnded: () => this.zone.run(() => this.selectMode.set(false)),
+          moved: () => this.zone.run(() => this.onMoved()),
         },
       );
       controller.init();
+      const initialBBox = this.state().bbox;
+      if (initialBBox) controller.fitBBox(initialBBox);
       this.destroyRef.onDestroy(() => {
         controller.destroy();
         if (window.__fieldiq?.map === gl) delete window.__fieldiq;
@@ -241,6 +294,47 @@ export class MapPage implements AfterViewInit {
   protected selectSensor(id: string | null, fly = true): void {
     if (!fly && id) this.flownTo = id;
     this.navigate({ sensor: id });
+  }
+
+  protected setFilter(filter: MapFilter): void {
+    this.navigate({ filter });
+  }
+
+  protected setBBox(bbox: BBox | null): void {
+    this.searchAreaVisible.set(false);
+    this.navigate({ bbox, sensor: bbox ? null : this.state().sensor });
+  }
+
+  protected toggleSelect(): void {
+    const on = !this.selectMode();
+    this.selectMode.set(on);
+    this.controller()?.setSelectMode(on);
+  }
+
+  protected cancelSelect(): void {
+    if (!this.selectMode()) return;
+    this.selectMode.set(false);
+    this.controller()?.setSelectMode(false);
+  }
+
+  /** "Search this area": stats for the current viewport. */
+  protected searchThisArea(): void {
+    const c = this.controller();
+    if (c) this.setBBox(c.viewportBBox());
+  }
+
+  protected zoomToSelection(): void {
+    const b = this.state().bbox;
+    if (b) this.controller()?.fitBBox(b);
+  }
+
+  private onMoved(): void {
+    // The first moveend is the initial fit to Finland; afterwards offer a viewport search.
+    if (!this.initialFitDone) {
+      this.initialFitDone = true;
+      return;
+    }
+    this.searchAreaVisible.set(true);
   }
 
   protected setLayer(layer: LayerMode): void {

@@ -36,6 +36,10 @@ module.exports = defineConfig([
     },
   },
   {
+    files: ['**/*.spec.ts'],
+    rules: { '@typescript-eslint/no-empty-function': 'off' },
+  },
+  {
     files: ['**/*.html'],
     extends: [angular.configs.templateRecommended, angular.configs.templateAccessibility],
     rules: {},

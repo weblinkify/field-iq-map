@@ -75,3 +75,10 @@ query Alerts($activeOnly: Boolean, $first: Int) {
     resolvedAt
   }
 }
+
+query Regions {
+  regions {
+    region
+    sensorCount
+  }
+}
