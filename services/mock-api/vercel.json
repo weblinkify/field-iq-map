@@ -1,6 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
+  "git": {
+    "deploymentEnabled": {
+      "dependabot/**": false
+    }
+  },
   "installCommand": "npm ci",
   "buildCommand": "node scripts/copy-shared.mjs && npm run build",
   "outputDirectory": "public",
@@ -11,5 +16,10 @@
       "includeFiles": "{.shared/**,dist/**}"
     }
   },
-  "rewrites": [{ "source": "/:path*", "destination": "/api/index?__route=:path*" }]
+  "rewrites": [
+    {
+      "source": "/:path*",
+      "destination": "/api/index?__route=:path*"
+    }
+  ]
 }
