@@ -10,7 +10,9 @@
     "lint": "ng lint && prettier --check \"src/**/*.{ts,html,css}\"",
     "format": "prettier --write \"src/**/*.{ts,html,css}\"",
     "test:ci": "ng test --watch=false --coverage",
-    "codegen": "graphql-codegen --config codegen.ts && openapi-typescript ../../shared/openapi/openapi.yaml -o src/app/api/generated/openapi.ts && prettier --write src/app/api/generated"
+    "codegen": "graphql-codegen --config codegen.ts && openapi-typescript ../../shared/openapi/openapi.yaml -o src/app/api/generated/openapi.ts && prettier --write src/app/api/generated",
+    "prestart": "node scripts/sync-shared-assets.mjs",
+    "prebuild": "node scripts/sync-shared-assets.mjs"
   },
   "private": true,
   "dependencies": {

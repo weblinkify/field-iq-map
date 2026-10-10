@@ -1,5 +1,6 @@
 @import 'tailwindcss';
-@import 'maplibre-gl/dist/maplibre-gl.css';
+/* Layered so Tailwind utilities (e.g. absolute inset-0) win over .maplibregl-map. */
+@import 'maplibre-gl/dist/maplibre-gl.css' layer(base);
 
 /* FieldIQ design tokens: dark dashboard, indigo brand, green "online" accent. */
 @theme {

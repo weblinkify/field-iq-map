@@ -23,6 +23,6 @@ describe('parseRuntimeConfig', () => {
 
   it('parses the basemap option', () => {
     expect(parseRuntimeConfig({ basemap: 'offline' }).basemap).toBe('offline');
-    expect(parseRuntimeConfig({ basemap: 'whatever' }).basemap).toBe('carto');
+    expect(parseRuntimeConfig({ basemap: 'whatever' }).basemap).toBe('openfreemap');
   });
 });

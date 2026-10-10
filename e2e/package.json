@@ -1,0 +1,18 @@
+{
+  "name": "@fieldiq/e2e",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:mock": "E2E_MODE=mock playwright test",
+    "test:real": "E2E_MODE=real playwright test",
+    "screenshots": "SCREENSHOTS=1 playwright test --grep @screenshots",
+    "lint": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.0",
+    "@types/node": "^24.19.2",
+    "typescript": "~5.9"
+  }
+}

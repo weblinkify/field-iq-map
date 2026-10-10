@@ -1,7 +1,7 @@
 import { InjectionToken } from '@angular/core';
 
 export type ApiMode = 'mock' | 'live';
-export type Basemap = 'carto' | 'offline';
+export type Basemap = 'openfreemap' | 'offline';
 
 /**
  * Configuration read at runtime from /env.js, which the web container writes at start-up from
@@ -28,7 +28,7 @@ export const DEFAULT_CONFIG: RuntimeConfig = {
   apiBaseUrl: '/api/v1',
   graphqlUrl: '/graphql',
   mapboxToken: null,
-  basemap: 'carto',
+  basemap: 'openfreemap',
 };
 
 const text = (value: unknown): string | null =>
@@ -45,7 +45,7 @@ export function parseRuntimeConfig(raw: RawRuntimeConfig | undefined): RuntimeCo
     graphqlUrl: text(raw?.graphqlUrl) ?? DEFAULT_CONFIG.graphqlUrl,
     // Ignore unsubstituted template placeholders such as "${MAPBOX_TOKEN}".
     mapboxToken: token && !token.startsWith('${') ? token : null,
-    basemap: basemap === 'offline' ? 'offline' : 'carto',
+    basemap: basemap === 'offline' ? 'offline' : 'openfreemap',
   };
 }
 
