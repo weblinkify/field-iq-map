@@ -44,6 +44,11 @@ describe('FieldIQ layers', () => {
     expect(layerVisibility('heatmap')[LAYERS.flatGlyphs]).toBe('none');
   });
 
+  it('fades points in at high zoom in heatmap mode only', () => {
+    expect(flatPointOpacity('points')).toBe(0.95);
+    expect(JSON.stringify(flatPointOpacity('heatmap'))).toContain('zoom');
+  });
+
   it('builds a selection polygon with four corners', () => {
     const fc = bboxFeatures({ minLon: 24, minLat: 60, maxLon: 25, maxLat: 61 }) as {
       features: { geometry: { type: string }; properties: { corner?: string } }[];

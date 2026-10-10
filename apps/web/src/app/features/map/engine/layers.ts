@@ -280,10 +280,18 @@ export function layerVisibility(mode: LayerMode): Record<string, 'visible' | 'no
   };
 }
 
+/** In heatmap mode points fade in only when zoomed in, so the heat layer stays readable. */
+export function flatPointOpacity(mode: LayerMode): unknown {
+  return mode === 'heatmap' ? ['interpolate', ['linear'], ['zoom'], 8, 0, 11, 0.95] : 0.95;
+}
+
 export function applyLayerMode(map: GlMap, mode: LayerMode): void {
   for (const [id, visibility] of Object.entries(layerVisibility(mode))) {
     map.setLayoutProperty(id, 'visibility', visibility);
   }
+  const opacity = flatPointOpacity(mode);
+  map.setPaintProperty(LAYERS.flatPoints, 'circle-opacity', opacity);
+  map.setPaintProperty(LAYERS.flatPoints, 'circle-stroke-opacity', opacity);
 }
 
 /** Selection rectangle polygon plus its four draggable corners. */

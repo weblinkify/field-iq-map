@@ -1,0 +1,43 @@
+# pre-commit install  — runs fast checks before each commit.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^(shared/fixtures/|.*/generated/)
+      - id: end-of-file-fixer
+        exclude: ^(shared/fixtures/|.*/generated/|docs/screenshots/)
+      - id: check-yaml
+        args: [--allow-multiple-documents]
+      - id: check-json
+        exclude: ^apps/web/tsconfig.*\.json$
+      - id: check-added-large-files
+        args: [--maxkb=6000]
+      - id: detect-private-key
+      - id: check-merge-conflict
+  - repo: local
+    hooks:
+      - id: web-lint
+        name: web lint (eslint + prettier)
+        entry: bash -c 'cd apps/web && npm run lint'
+        language: system
+        files: ^apps/web/
+        pass_filenames: false
+      - id: mock-api-lint
+        name: mock-api lint + typecheck
+        entry: bash -c 'cd services/mock-api && npm run lint && npm run typecheck'
+        language: system
+        files: ^services/mock-api/
+        pass_filenames: false
+      - id: shared-check
+        name: fixture up to date
+        entry: bash -c 'cd shared && npm run check'
+        language: system
+        files: ^shared/
+        pass_filenames: false
+      - id: api-spotless
+        name: api spotless
+        entry: bash -c 'cd services/api && ./mvnw -q spotless:check'
+        language: system
+        files: ^services/api/.*\.java$
+        pass_filenames: false

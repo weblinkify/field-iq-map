@@ -31,7 +31,7 @@ install: ## Install all Node dependencies
 	cd shared && npm ci
 	cd services/mock-api && npm ci
 	cd apps/web && npm ci
-	cd e2e && npm ci
+	cd e2e && npm ci && npx playwright install chromium
 
 dev-db: ## Start only PostGIS in Docker (host port 5433)
 	$(COMPOSE) up -d --wait postgis
@@ -62,6 +62,7 @@ lint: ## Lint everything
 	cd apps/web && npm run lint
 	cd services/mock-api && npm run lint
 	cd shared && npm run lint
+	cd e2e && npm run lint
 
 test: test-shared test-mock test-web test-api ## Run all unit + integration tests
 
@@ -94,7 +95,7 @@ seed: ## Re-seed the real database from shared/fixtures/sensors.json
 	$(COMPOSE) --profile real run --rm --no-deps -e FIELDIQ_SEED_FORCE=true -e FIELDIQ_EXIT_AFTER_SEED=true -e FIELDIQ_SIMULATOR_ENABLED=false api
 
 # ------------------------------------------------------------- e2e -----------
-.PHONY: e2e-mock e2e-real
+.PHONY: e2e-mock e2e-real screenshots
 e2e-mock: ## Playwright against the mock profile
 	NG_CONFIG=e2e BASEMAP=offline $(COMPOSE) --profile mock up -d --build --wait
 	cd e2e && E2E_MODE=mock BASE_URL=$(WEB_URL) npx playwright test
@@ -102,3 +103,7 @@ e2e-mock: ## Playwright against the mock profile
 e2e-real: ## Playwright against the real profile
 	NG_CONFIG=e2e BASEMAP=offline $(COMPOSE) --profile real up -d --build --wait
 	cd e2e && E2E_MODE=real BASE_URL=$(WEB_URL) npx playwright test
+
+screenshots: ## Regenerate README screenshots + GIF (real mode, online basemap)
+	NG_CONFIG=e2e BASEMAP=openfreemap $(COMPOSE) --profile real up -d --build --wait
+	cd e2e && E2E_MODE=real BASE_URL=$(WEB_URL) npm run screenshots
