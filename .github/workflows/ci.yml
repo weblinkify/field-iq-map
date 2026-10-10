@@ -78,9 +78,17 @@ jobs:
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
       - run: npm ci
+      - name: GraphQL + OpenAPI codegen is committed and in sync
+        run: |
+          npm run codegen
+          git diff --exit-code -- src/app/api/generated
       - run: npm run lint
-      - run: npm run test:ci
-      - run: npm run build
+      - name: Unit tests with coverage
+        run: npm run test:ci
+      - name: Production build
+        run: npm run build
+      - name: E2E build (test hooks enabled)
+        run: npx ng build --configuration e2e --output-path dist/web-e2e
 
   mock-api:
     name: Mock API

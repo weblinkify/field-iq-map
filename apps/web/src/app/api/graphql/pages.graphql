@@ -1,0 +1,77 @@
+query Dashboard {
+  sensorStats {
+    total
+    activeAlerts
+    regionsCovered
+    byStatus {
+      status
+      count
+    }
+    byType {
+      type
+      count
+    }
+    averages {
+      metric
+      average
+      unit
+      sampleSize
+    }
+  }
+  regions {
+    region
+    sensorCount
+    onlineCount
+    alertCount
+  }
+}
+
+query Sites($region: String) {
+  sites(region: $region) {
+    id
+    name
+    municipality
+    region
+    sensorCount
+    location {
+      lat
+      lon
+    }
+  }
+}
+
+query Devices($filter: SensorFilter, $first: Int, $after: String) {
+  sensors(filter: $filter, first: $first, after: $after) {
+    totalCount
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+    edges {
+      node {
+        id
+        name
+        type
+        status
+        municipality
+        region
+        siteName
+        batteryPct
+        firmware
+        lastSeenAt
+      }
+    }
+  }
+}
+
+query Alerts($activeOnly: Boolean, $first: Int) {
+  alerts(activeOnly: $activeOnly, first: $first) {
+    id
+    sensorId
+    sensorName
+    severity
+    message
+    createdAt
+    resolvedAt
+  }
+}

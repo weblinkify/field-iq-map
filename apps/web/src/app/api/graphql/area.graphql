@@ -1,0 +1,42 @@
+query AreaStats($bbox: BBoxInput, $filter: SensorFilter) {
+  sensorStats(bbox: $bbox, filter: $filter) {
+    total
+    activeAlerts
+    regionsCovered
+    byStatus {
+      status
+      count
+    }
+    byType {
+      type
+      count
+    }
+    averages {
+      metric
+      average
+      unit
+      sampleSize
+    }
+  }
+}
+
+query AreaSensors($bbox: BBoxInput, $filter: SensorFilter, $first: Int, $after: String) {
+  sensors(bbox: $bbox, filter: $filter, first: $first, after: $after) {
+    totalCount
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        id
+        name
+        type
+        status
+        municipality
+        batteryPct
+      }
+    }
+  }
+}

@@ -1,0 +1,42 @@
+query SensorDetail($id: ID!) {
+  sensor(id: $id) {
+    id
+    name
+    type
+    status
+    municipality
+    region
+    siteName
+    batteryPct
+    firmware
+    installedAt
+    lastSeenAt
+    location {
+      lat
+      lon
+    }
+    site {
+      id
+      name
+      sensorCount
+    }
+    latestReadings {
+      metric
+      value
+      unit
+      ts
+    }
+    readings {
+      ts
+      metric
+      value
+      unit
+    }
+    alerts(activeOnly: true) {
+      id
+      severity
+      message
+      createdAt
+    }
+  }
+}

@@ -1,0 +1,11 @@
+query Kpis {
+  sensorStats {
+    total
+    activeAlerts
+    regionsCovered
+    byStatus {
+      status
+      count
+    }
+  }
+}
