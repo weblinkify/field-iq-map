@@ -96,6 +96,11 @@ jobs:
           cache: npm
           cache-dependency-path: services/mock-api/package-lock.json
       - run: npm ci
+      - name: Generated types are in sync with shared/ contracts
+        run: |
+          npm run codegen
+          git diff --exit-code -- src/generated
       - run: npm run lint
       - run: npm run typecheck
-      - run: npm test
+      - run: npm test -- --coverage
+      - run: npm run build
