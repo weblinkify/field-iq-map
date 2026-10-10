@@ -1,6 +1,9 @@
 # FieldIQ
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-FieldIQ%20Map-brightgreen)](https://fieldiq-web-rosy.vercel.app/map)
 [![CI](https://github.com/weblinkify/field-iq-map/actions/workflows/ci.yml/badge.svg)](https://github.com/weblinkify/field-iq-map/actions/workflows/ci.yml)
+
+**🗺️ Live demo (mock API): <https://fieldiq-web-rosy.vercel.app/map>**. Try [a sensor deep link](https://fieldiq-web-rosy.vercel.app/map?sensor=FIQ-00042) or [Helsinki stats](https://fieldiq-web-rosy.vercel.app/map?bbox=24.7,60.12,25.2,60.33).
 
 **FieldIQ** is an environmental and site monitoring platform that connects physical sensors with cloud software:
 
@@ -78,6 +81,17 @@ make dev        # PostGIS in Docker + ./mvnw spring-boot:run + ng serve (http://
 make dev-mock   # in one terminal: mock API on :4000
 cd apps/web && API_TARGET=http://localhost:4000 npm start   # in another
 ```
+
+### Deploying to Vercel (mock API)
+
+The live demo runs as two Vercel projects from this repo:
+
+| Project | Root directory | What it is |
+| --- | --- | --- |
+| `fieldiq-mock-api` | `services/mock-api` | The mock API as a serverless function ([`vercel.json`](services/mock-api/vercel.json)). The shared schema and fixture are bundled at build time |
+| `fieldiq-web` | `apps/web` | The static Angular build ([`vercel.json`](apps/web/vercel.json)). `/api/*` and `/graphql` are proxied to `fieldiq-mock-api`, so the browser stays same-origin |
+
+Import each one in Vercel with the root directory above and the **Other** preset; both `vercel.json` files define the build. Pushes to `main` redeploy both. Optional env vars on `fieldiq-web`: `MAPBOX_TOKEN`, `BASEMAP`. The Spring Boot + PostGIS backend needs a container host (e.g. Fly.io, Render or Railway). To use it, point the rewrites in `apps/web/vercel.json` at that host.
 
 ### Mapbox token (optional)
 
