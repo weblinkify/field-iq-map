@@ -14,6 +14,26 @@ permissions:
   contents: read
 
 jobs:
+  shared:
+    name: Shared fixtures
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: shared
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: shared/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - name: Fixture is up to date
+        run: npm run check
+      - run: npm test
+
   api:
     name: API (Spring Boot)
     runs-on: ubuntu-24.04
