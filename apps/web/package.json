@@ -24,7 +24,7 @@
     "@angular/router": "^22.2.0",
     "@apollo/client": "^4.3.3",
     "apollo-angular": "^14.2.0",
-    "graphql": "^16.14.2",
+    "graphql": "^17.0.2",
     "mapbox-gl": "^3.32.0",
     "maplibre-gl": "^6.13.0",
     "rxjs": "~7.8.0",
