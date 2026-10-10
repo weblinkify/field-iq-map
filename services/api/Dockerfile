@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1.7
 # FieldIQ API — build context: repository root (needs shared/ for schema + fixture).
 
-FROM maven:3.9-eclipse-temurin-21 AS build
+FROM maven:3.9-eclipse-temurin-26 AS build
 WORKDIR /src
 COPY services/api/pom.xml services/api/
 COPY shared/graphql shared/graphql
