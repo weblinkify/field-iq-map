@@ -1,0 +1,35 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm ci --prefix apps/web && npm ci --prefix services/mock-api",
+  "buildCommand": "npm run build --prefix services/mock-api && npm run build --prefix apps/web && node scripts/vercel-env.mjs",
+  "outputDirectory": "apps/web/dist/web/browser",
+  "functions": {
+    "api/index.mjs": {
+      "memory": 1024,
+      "maxDuration": 10,
+      "includeFiles": "{shared/fixtures/sensors.json,shared/graphql/schema.graphqls,services/mock-api/dist/**}"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/v1/:path*", "destination": "/api/index?__route=/api/v1/:path*" },
+    { "source": "/graphql", "destination": "/api/index?__route=/graphql" },
+    { "source": "/graphiql", "destination": "/api/index?__route=/graphiql" },
+    { "source": "/((?!api/|graphql|graphiql|.*\\.[a-zA-Z0-9]+$).*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    { "source": "/env.js", "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
+    { "source": "/index.html", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+    {
+      "source": "/(.*)-([A-Za-z0-9_]{8}).(js|css)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
+      ]
+    }
+  ]
+}
