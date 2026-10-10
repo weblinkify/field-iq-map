@@ -14,7 +14,7 @@ RUN --mount=type=cache,target=/root/.m2 \
       -DskipTests -Dspotless.check.skip=true -Djacoco.skip=true \
  && cp services/api/target/fieldiq-api-*.jar /src/app.jar
 
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 LABEL org.opencontainers.image.title="fieldiq-api" \
       org.opencontainers.image.description="FieldIQ v2 REST + GraphQL API (Spring Boot, PostGIS)" \
       org.opencontainers.image.source="https://github.com/weblinkify/field-iq-map"
