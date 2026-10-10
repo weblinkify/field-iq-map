@@ -47,10 +47,22 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      - name: Format check
+      - name: Format check (Spotless / google-java-format)
         run: ./mvnw -B spotless:check
-      - name: Build, test, coverage
+      - name: Build, unit + Testcontainers integration tests, JaCoCo (>= 80%)
         run: ./mvnw -B verify
+      - name: OpenAPI / GraphQL snapshot drift check
+        # OpenApiSnapshotTest already fails on drift; this guards against tests being skipped.
+        run: |
+          ./mvnw -B -q test -Dtest='OpenApiSnapshotTest,GraphQlSchemaSnapshotTest' -Dcontract.update=true -Djacoco.skip=true
+          git diff --exit-code -- ../../shared/openapi/openapi.yaml src/test/resources/snapshots/
+      - name: Upload JaCoCo report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: services/api/target/site/jacoco/
+          if-no-files-found: ignore
 
   web:
     name: Web (Angular)

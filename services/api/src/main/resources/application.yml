@@ -46,6 +46,9 @@ management:
 springdoc:
   api-docs:
     path: /v3/api-docs
+    version: openapi_3_1
+  writer-with-order-by-keys: true
+  writer-with-default-pretty-printer: true
   swagger-ui:
     path: /swagger-ui.html
   paths-to-match: /api/**

@@ -81,8 +81,8 @@ contract: ## Contract tests: mock vs real API (starts both in Docker)
 	$(COMPOSE) up -d --build --wait postgis api mock-api
 	cd services/mock-api && MOCK_URL=http://localhost:4000 REAL_URL=http://localhost:8081 npm run test:contract
 
-openapi: ## Re-export shared/openapi/openapi.yaml from the backend
-	cd services/api && ./mvnw -B test -Dtest=OpenApiSnapshotTest -Dopenapi.update=true -Djacoco.skip=true
+contract-snapshots: ## Re-export shared/openapi/openapi.yaml + GraphQL schema snapshot from the backend
+	cd services/api && ./mvnw -B test -Dtest='OpenApiSnapshotTest,GraphQlSchemaSnapshotTest' -Dcontract.update=true -Djacoco.skip=true
 
 # ------------------------------------------------------------- data ----------
 .PHONY: fixtures seed

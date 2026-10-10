@@ -24,7 +24,7 @@
     <jacoco.version>0.8.15</jacoco.version>
     <!-- Shared contract lives outside the module; it is packaged onto the classpath. -->
     <shared.dir>${project.basedir}/../../shared</shared.dir>
-    <openapi.update>false</openapi.update>
+    <contract.update>false</contract.update>
   </properties>
 
   <dependencies>
@@ -63,7 +63,6 @@
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
-      <scope>runtime</scope>
     </dependency>
     <dependency>
       <groupId>org.springdoc</groupId>
@@ -139,7 +138,7 @@
         <configuration>
           <systemPropertyVariables>
             <fieldiq.shared.dir>${shared.dir}</fieldiq.shared.dir>
-            <openapi.update>${openapi.update}</openapi.update>
+            <contract.update>${contract.update}</contract.update>
           </systemPropertyVariables>
         </configuration>
       </plugin>

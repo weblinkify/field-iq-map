@@ -1,206 +1,454 @@
 openapi: 3.1.0
 info:
+  description: "Bulk map data (GeoJSON), sensor details, readings and CSV export."
+  license:
+    name: MIT
   title: FieldIQ API
   version: 2.0.0
-  description: Bulk map data (GeoJSON), sensor details, readings and CSV export.
+servers:
+- description: Same origin (proxied by nginx)
+  url: /
 paths:
+  /api/v1/export/sensors.csv:
+    get:
+      operationId: exportSensorsCsv
+      parameters:
+      - description: "minLon,minLat,maxLon,maxLat (WGS84)"
+        in: query
+        name: bbox
+        required: false
+        schema:
+          type: string
+      - in: query
+        name: type
+        required: false
+        schema:
+          type: array
+          items:
+            $ref: "#/components/schemas/SensorType"
+      - in: query
+        name: status
+        required: false
+        schema:
+          type: array
+          items:
+            $ref: "#/components/schemas/SensorStatus"
+      - in: query
+        name: region
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+      responses:
+        "200":
+          content:
+            text/csv;charset=UTF-8:
+              schema:
+                type: string
+          description: CSV file
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Invalid request
+      summary: Export sensors (optionally in a bbox) as CSV
+      tags:
+      - export
   /api/v1/health:
     get:
-      tags: [health]
       operationId: getHealth
       responses:
-        '200':
-          description: OK
+        "200":
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/HealthResponse' }
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+          description: OK
+      summary: Service health
+      tags:
+      - health
   /api/v1/sensors.geojson:
     get:
-      tags: [sensors]
       operationId: getSensorsGeoJson
       parameters:
-        - { $ref: '#/components/parameters/bbox' }
-        - { $ref: '#/components/parameters/type' }
-        - { $ref: '#/components/parameters/status' }
-        - { $ref: '#/components/parameters/region' }
+      - description: "minLon,minLat,maxLon,maxLat (WGS84)"
+        example: "24.5,60.1,25.3,60.4"
+        in: query
+        name: bbox
+        required: false
+        schema:
+          type: string
+      - in: query
+        name: type
+        required: false
+        schema:
+          type: array
+          items:
+            $ref: "#/components/schemas/SensorType"
+      - in: query
+        name: status
+        required: false
+        schema:
+          type: array
+          items:
+            $ref: "#/components/schemas/SensorStatus"
+      - in: query
+        name: region
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
       responses:
-        '200':
-          description: GeoJSON FeatureCollection with lightweight properties
+        "200":
           content:
             application/geo+json:
-              schema: { $ref: '#/components/schemas/SensorFeatureCollection' }
-        '400': { $ref: '#/components/responses/BadRequest' }
+              schema:
+                $ref: "#/components/schemas/SensorFeatureCollection"
+          description: GeoJSON FeatureCollection
+        "400":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Invalid request
+      summary: All sensors as a GeoJSON FeatureCollection with lightweight properties
+      tags:
+      - sensors
   /api/v1/sensors/{id}:
     get:
-      tags: [sensors]
       operationId: getSensor
       parameters:
-        - { name: id, in: path, required: true, schema: { type: string, example: FIQ-00042 } }
+      - example: FIQ-00042
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
       responses:
-        '200':
-          description: Sensor details
+        "200":
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/SensorDetail' }
-        '404': { $ref: '#/components/responses/NotFound' }
+              schema:
+                $ref: "#/components/schemas/SensorDetail"
+          description: Sensor details
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Unknown sensor
+      summary: Sensor details with latest readings
+      tags:
+      - sensors
   /api/v1/sensors/{id}/readings:
     get:
-      tags: [sensors]
       operationId: getSensorReadings
       parameters:
-        - { name: id, in: path, required: true, schema: { type: string } }
-        - { name: from, in: query, schema: { type: string, format: date-time } }
-        - { name: to, in: query, schema: { type: string, format: date-time } }
-        - { name: metric, in: query, schema: { $ref: '#/components/schemas/Metric' } }
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      - in: query
+        name: from
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: to
+        required: false
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: metric
+        required: false
+        schema:
+          $ref: "#/components/schemas/Metric"
       responses:
-        '200':
-          description: Hourly readings (default last 24 h)
+        "200":
           content:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/Reading' }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '404': { $ref: '#/components/responses/NotFound' }
-  /api/v1/export/sensors.csv:
-    get:
-      tags: [export]
-      operationId: exportSensorsCsv
-      parameters:
-        - { $ref: '#/components/parameters/bbox' }
-        - { $ref: '#/components/parameters/type' }
-        - { $ref: '#/components/parameters/status' }
-        - { $ref: '#/components/parameters/region' }
-      responses:
-        '200':
-          description: CSV export
+                items:
+                  $ref: "#/components/schemas/Reading"
+          description: Readings ordered by time
+        "400":
           content:
-            text/csv:
-              schema: { type: string }
-        '400': { $ref: '#/components/responses/BadRequest' }
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Invalid range
+        "404":
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Unknown sensor
+      summary: "Hourly readings (defaults to the last 24 hours, all metrics)"
+      tags:
+      - sensors
 components:
-  parameters:
-    bbox:
-      name: bbox
-      in: query
-      description: minLon,minLat,maxLon,maxLat (WGS84)
-      schema: { type: string, example: '24.5,60.1,25.3,60.4' }
-    type:
-      name: type
-      in: query
-      style: form
-      explode: false
-      schema: { type: array, items: { $ref: '#/components/schemas/SensorType' } }
-    status:
-      name: status
-      in: query
-      style: form
-      explode: false
-      schema: { type: array, items: { $ref: '#/components/schemas/SensorStatus' } }
-    region:
-      name: region
-      in: query
-      style: form
-      explode: false
-      schema: { type: array, items: { type: string } }
-  responses:
-    BadRequest:
-      description: Invalid request
-      content:
-        application/problem+json:
-          schema: { $ref: '#/components/schemas/ProblemDetail' }
-    NotFound:
-      description: Not found
-      content:
-        application/problem+json:
-          schema: { $ref: '#/components/schemas/ProblemDetail' }
   schemas:
-    SensorType: { type: string, enum: [TEMPERATURE, HUMIDITY, NOISE, AIR_QUALITY_PM25, MULTI] }
-    SensorStatus: { type: string, enum: [ONLINE, OFFLINE, ALERT, LOW_BATTERY] }
-    Metric: { type: string, enum: [TEMPERATURE, HUMIDITY, NOISE, PM25] }
-    HealthResponse:
-      type: object
-      required: [status, mode, version, time]
-      properties:
-        status: { type: string }
-        mode: { type: string, enum: [live, mock] }
-        version: { type: string }
-        time: { type: string, format: date-time }
     Coordinates:
       type: object
-      required: [lat, lon]
       properties:
-        lat: { type: number, format: double }
-        lon: { type: number, format: double }
-    Reading:
+        lat:
+          type: number
+          format: double
+        lon:
+          type: number
+          format: double
+      required:
+      - lat
+      - lon
+    HealthResponse:
       type: object
-      required: [sensorId, ts, metric, value, unit]
       properties:
-        sensorId: { type: string }
-        ts: { type: string, format: date-time }
-        metric: { $ref: '#/components/schemas/Metric' }
-        value: { type: number, format: double }
-        unit: { type: string }
-    SensorDetail:
-      type: object
-      required: [id, name, type, status, location, municipality, region, siteId, siteName, installedAt, batteryPct, firmware, lastSeenAt, latestReadings]
-      properties:
-        id: { type: string }
-        name: { type: string }
-        type: { $ref: '#/components/schemas/SensorType' }
-        status: { $ref: '#/components/schemas/SensorStatus' }
-        location: { $ref: '#/components/schemas/Coordinates' }
-        municipality: { type: string }
-        region: { type: string }
-        siteId: { type: string }
-        siteName: { type: string }
-        installedAt: { type: string, format: date-time }
-        batteryPct: { type: integer }
-        firmware: { type: string }
-        lastSeenAt: { type: string, format: date-time }
-        latestReadings: { type: array, items: { $ref: '#/components/schemas/Reading' } }
+        mode:
+          type: string
+          enum:
+          - live
+          - mock
+        status:
+          type: string
+        time:
+          type: string
+          format: date-time
+        version:
+          type: string
+      required:
+      - mode
+      - status
+      - time
+      - version
+    Metric:
+      type: string
+      enum:
+      - TEMPERATURE
+      - HUMIDITY
+      - NOISE
+      - PM25
     PointGeometry:
       type: object
-      required: [type, coordinates]
       properties:
-        type: { type: string, enum: [Point] }
-        coordinates: { type: array, minItems: 2, maxItems: 2, items: { type: number, format: double } }
-    SensorFeatureProperties:
-      type: object
-      required: [id, name, type, status, municipality, region, siteName, batteryPct, lastSeenAt, metric, unit]
-      properties:
-        id: { type: string }
-        name: { type: string }
-        type: { $ref: '#/components/schemas/SensorType' }
-        status: { $ref: '#/components/schemas/SensorStatus' }
-        municipality: { type: string }
-        region: { type: string }
-        siteName: { type: string }
-        batteryPct: { type: integer }
-        lastSeenAt: { type: string, format: date-time }
-        metric: { $ref: '#/components/schemas/Metric' }
-        value: { type: [number, 'null'], format: double }
-        unit: { type: string }
-        pm25: { type: [number, 'null'], format: double }
-    SensorFeature:
-      type: object
-      required: [type, id, geometry, properties]
-      properties:
-        type: { type: string, enum: [Feature] }
-        id: { type: string }
-        geometry: { $ref: '#/components/schemas/PointGeometry' }
-        properties: { $ref: '#/components/schemas/SensorFeatureProperties' }
-    SensorFeatureCollection:
-      type: object
-      required: [type, features]
-      properties:
-        type: { type: string, enum: [FeatureCollection] }
-        features: { type: array, items: { $ref: '#/components/schemas/SensorFeature' } }
+        coordinates:
+          type: array
+          description: "[longitude, latitude]"
+          items:
+            type: number
+            format: double
+          maxItems: 2
+          minItems: 2
+        type:
+          type: string
+          enum:
+          - Point
+      required:
+      - coordinates
+      - type
     ProblemDetail:
       type: object
       properties:
-        type: { type: string, format: uri }
-        title: { type: string }
-        status: { type: integer }
-        detail: { type: string }
-        instance: { type: string, format: uri }
+        detail:
+          type:
+          - string
+          - "null"
+        instance:
+          type:
+          - string
+          - "null"
+          format: uri
+        properties:
+          type:
+          - object
+          - "null"
+          additionalProperties: {}
+        status:
+          type: integer
+          format: int32
+        title:
+          type:
+          - string
+          - "null"
+        type:
+          type: string
+          format: uri
+    Reading:
+      type: object
+      properties:
+        metric:
+          $ref: "#/components/schemas/Metric"
+        sensorId:
+          type: string
+        ts:
+          type: string
+          format: date-time
+        unit:
+          type: string
+        value:
+          type: number
+          format: double
+      required:
+      - metric
+      - sensorId
+      - ts
+      - unit
+      - value
+    SensorDetail:
+      type: object
+      properties:
+        batteryPct:
+          type: integer
+          format: int32
+        firmware:
+          type: string
+        id:
+          type: string
+        installedAt:
+          type: string
+          format: date-time
+        lastSeenAt:
+          type: string
+          format: date-time
+        latestReadings:
+          type: array
+          items:
+            $ref: "#/components/schemas/Reading"
+        location:
+          $ref: "#/components/schemas/Coordinates"
+        municipality:
+          type: string
+        name:
+          type: string
+        region:
+          type: string
+        siteId:
+          type: string
+        siteName:
+          type: string
+        status:
+          $ref: "#/components/schemas/SensorStatus"
+        type:
+          $ref: "#/components/schemas/SensorType"
+      required:
+      - batteryPct
+      - firmware
+      - id
+      - installedAt
+      - lastSeenAt
+      - latestReadings
+      - location
+      - municipality
+      - name
+      - region
+      - siteId
+      - siteName
+      - status
+      - type
+    SensorFeature:
+      type: object
+      properties:
+        geometry:
+          $ref: "#/components/schemas/PointGeometry"
+        id:
+          type: string
+        properties:
+          $ref: "#/components/schemas/SensorFeatureProperties"
+        type:
+          type: string
+          enum:
+          - Feature
+      required:
+      - geometry
+      - id
+      - properties
+      - type
+    SensorFeatureCollection:
+      type: object
+      properties:
+        features:
+          type: array
+          items:
+            $ref: "#/components/schemas/SensorFeature"
+        type:
+          type: string
+          enum:
+          - FeatureCollection
+      required:
+      - features
+      - type
+    SensorFeatureProperties:
+      type: object
+      properties:
+        batteryPct:
+          type: integer
+          format: int32
+        id:
+          type: string
+        lastSeenAt:
+          type: string
+          format: date-time
+        metric:
+          $ref: "#/components/schemas/Metric"
+          description: Primary metric shown on the map
+        municipality:
+          type: string
+        name:
+          type: string
+        pm25:
+          type:
+          - number
+          - "null"
+          format: double
+          description: Latest PM2.5 (heatmap weight)
+        region:
+          type: string
+        siteName:
+          type: string
+        status:
+          $ref: "#/components/schemas/SensorStatus"
+        type:
+          $ref: "#/components/schemas/SensorType"
+        unit:
+          type: string
+        value:
+          type:
+          - number
+          - "null"
+          format: double
+          description: Latest value of the primary metric
+      required:
+      - batteryPct
+      - id
+      - lastSeenAt
+      - metric
+      - municipality
+      - name
+      - pm25
+      - region
+      - siteName
+      - status
+      - type
+      - unit
+      - value
+    SensorStatus:
+      type: string
+      enum:
+      - ONLINE
+      - OFFLINE
+      - ALERT
+      - LOW_BATTERY
+    SensorType:
+      type: string
+      enum:
+      - TEMPERATURE
+      - HUMIDITY
+      - NOISE
+      - AIR_QUALITY_PM25
+      - MULTI
