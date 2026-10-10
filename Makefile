@@ -33,7 +33,7 @@ install: ## Install all Node dependencies
 	cd apps/web && npm ci
 	cd e2e && npm ci
 
-dev-db: ## Start only PostGIS in Docker (port 5432)
+dev-db: ## Start only PostGIS in Docker (host port 5433)
 	$(COMPOSE) up -d --wait postgis
 
 dev-api: ## Run the Spring Boot API locally (needs dev-db)
@@ -91,7 +91,7 @@ fixtures: ## Regenerate shared/fixtures/sensors.json (deterministic)
 
 seed: ## Re-seed the real database from shared/fixtures/sensors.json
 	$(COMPOSE) --profile real up -d --wait postgis
-	$(COMPOSE) --profile real run --rm -e FIELDIQ_SEED_FORCE=true -e FIELDIQ_EXIT_AFTER_SEED=true api
+	$(COMPOSE) --profile real run --rm --no-deps -e FIELDIQ_SEED_FORCE=true -e FIELDIQ_EXIT_AFTER_SEED=true -e FIELDIQ_SIMULATOR_ENABLED=false api
 
 # ------------------------------------------------------------- e2e -----------
 .PHONY: e2e-mock e2e-real

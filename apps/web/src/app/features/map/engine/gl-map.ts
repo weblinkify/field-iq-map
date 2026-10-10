@@ -89,7 +89,7 @@ export interface GlMap {
 export interface CreateMapOptions {
   container: HTMLElement;
   bounds: BoundsInput;
-  padding: number;
+  padding: number | { top: number; bottom: number; left: number; right: number };
   dark: boolean;
   basemap: Basemap;
   mapboxToken: string | null;

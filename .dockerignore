@@ -1,0 +1,19 @@
+# Build context is the repo root (services need shared/). Keep it small.
+**/node_modules
+**/dist
+**/target
+**/.angular
+**/coverage
+**/test-results
+**/playwright-report
+**/blob-report
+.git
+.github
+.idea
+.vscode
+**/.DS_Store
+**/*.log
+.env
+.env.*
+!.env.example
+docs/screenshots

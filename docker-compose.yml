@@ -1,0 +1,101 @@
+# FieldIQ v2 — one command per mode:
+#   docker compose --profile mock up --build   (make up-mock)  web + mock-api, no secrets
+#   docker compose --profile real up --build   (make up-real)  web + api + PostGIS (seeded)
+# The web image is identical in both modes; nginx proxies /api and /graphql to API_UPSTREAM
+# and /env.js is generated at start-up from the environment.
+name: fieldiq
+
+x-web: &web
+  build:
+    context: .
+    dockerfile: apps/web/Dockerfile
+    args:
+      NG_CONFIG: ${NG_CONFIG:-production}
+  image: ${WEB_IMAGE:-fieldiq-web:local}
+  ports:
+    - "${WEB_PORT:-8080}:8080"
+  # Read-only root filesystem; nginx writes its rendered config and env.js to tmpfs.
+  read_only: true
+  tmpfs:
+    - /tmp
+    - /etc/nginx/conf.d:uid=101,gid=101
+  restart: unless-stopped
+
+services:
+  postgis:
+    image: imresamu/postgis:16-3.5-alpine # multi-arch (amd64 + arm64)
+    profiles: [real]
+    environment:
+      POSTGRES_DB: fieldiq
+      POSTGRES_USER: fieldiq
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fieldiq}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fieldiq -d fieldiq"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    image: ${API_IMAGE:-fieldiq-api:local}
+    profiles: [real]
+    environment:
+      DATABASE_URL: jdbc:postgresql://postgis:5432/fieldiq
+      DATABASE_USER: fieldiq
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-fieldiq}
+      FIELDIQ_SEED_ENABLED: "true"
+      FIELDIQ_SEED_FORCE: ${FIELDIQ_SEED_FORCE:-false}
+      FIELDIQ_EXIT_AFTER_SEED: ${FIELDIQ_EXIT_AFTER_SEED:-false}
+      FIELDIQ_SIMULATOR_ENABLED: ${FIELDIQ_SIMULATOR_ENABLED:-true}
+      FIELDIQ_SIMULATOR_INTERVAL: ${FIELDIQ_SIMULATOR_INTERVAL:-30s}
+    ports:
+      - "${API_PORT:-8081}:8080"
+    depends_on:
+      postgis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mock-api:
+    build:
+      context: .
+      dockerfile: services/mock-api/Dockerfile
+    image: ${MOCK_API_IMAGE:-fieldiq-mock-api:local}
+    profiles: [mock]
+    ports:
+      - "${MOCK_API_PORT:-4000}:4000"
+    read_only: true
+    restart: unless-stopped
+
+  web-mock:
+    <<: *web
+    profiles: [mock]
+    environment:
+      API_MODE: mock
+      API_UPSTREAM: http://mock-api:4000
+      MAPBOX_TOKEN: ${MAPBOX_TOKEN:-}
+      BASEMAP: ${BASEMAP:-openfreemap}
+    depends_on:
+      mock-api:
+        condition: service_healthy
+
+  web-real:
+    <<: *web
+    profiles: [real]
+    environment:
+      API_MODE: live
+      API_UPSTREAM: http://api:8080
+      MAPBOX_TOKEN: ${MAPBOX_TOKEN:-}
+      BASEMAP: ${BASEMAP:-openfreemap}
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:

@@ -2,7 +2,7 @@ spring:
   application:
     name: fieldiq-api
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/fieldiq}
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5433/fieldiq}
     username: ${DATABASE_USER:fieldiq}
     password: ${DATABASE_PASSWORD:fieldiq}
   jpa:
@@ -58,6 +58,7 @@ fieldiq:
     enabled: ${FIELDIQ_SEED_ENABLED:true}
     force: ${FIELDIQ_SEED_FORCE:false}
     history-hours: ${FIELDIQ_SEED_HISTORY_HOURS:24}
+    exit-after-seed: ${FIELDIQ_EXIT_AFTER_SEED:false}
   simulator:
     enabled: ${FIELDIQ_SIMULATOR_ENABLED:true}
     interval: ${FIELDIQ_SIMULATOR_INTERVAL:30s}

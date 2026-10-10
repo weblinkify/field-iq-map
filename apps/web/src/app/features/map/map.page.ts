@@ -233,7 +233,8 @@ export class MapPage implements AfterViewInit {
       const gl = await this.engine.create({
         container: el,
         bounds: FINLAND_BOUNDS,
-        padding: 32,
+        // Leave room for the filter bar overlay at the top.
+        padding: { top: 120, bottom: 24, left: 24, right: 24 },
         dark: this.dark(),
         basemap: this.config.basemap,
         mapboxToken: this.config.mapboxToken,
