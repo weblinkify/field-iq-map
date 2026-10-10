@@ -11,7 +11,7 @@ COPY shared/geo /src/shared/geo
 COPY apps/web/ ./
 RUN npm run build -- --configuration "${NG_CONFIG}"
 
-FROM nginxinc/nginx-unprivileged:1.29-alpine
+FROM nginxinc/nginx-unprivileged:1.31-alpine
 LABEL org.opencontainers.image.title="fieldiq-web" \
       org.opencontainers.image.description="FieldIQ v2 web app (Angular + MapLibre/Mapbox)" \
       org.opencontainers.image.source="https://github.com/weblinkify/field-iq-map"
