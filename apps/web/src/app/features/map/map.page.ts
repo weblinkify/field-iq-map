@@ -14,12 +14,12 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
-import { map, startWith, switchMap, timer } from 'rxjs';
+import { catchError, EMPTY, map, switchMap, timer } from 'rxjs';
 import { SensorsRestService, type BBox } from '../../api/rest/sensors-rest.service';
-import { formatCount } from '../../core/format';
-import { Icon } from '../../shared/icon';
-import { RUNTIME_CONFIG } from '../../core/runtime-config';
 import { environment } from '../../../environments/environment';
+import { formatCount } from '../../core/format';
+import { RUNTIME_CONFIG } from '../../core/runtime-config';
+import { Icon } from '../../shared/icon';
 import { FINLAND_BOUNDS } from './engine/styles';
 import type { GlMap } from './engine/gl-map';
 import { MAP_ENGINE } from './engine/map-engine.provider';
@@ -133,7 +133,7 @@ const REFRESH_MS = 60_000;
             {{ e }}
           </p>
         }
-        @if (!ready()) {
+        @if (!ready() && !error()) {
           <p role="status" class="absolute inset-0 grid place-items-center text-slate-400">
             Loading map…
           </p>
@@ -268,20 +268,23 @@ export class MapPage implements AfterViewInit {
   }
 
   private loadData(): void {
+    // A failed refresh shows an error but keeps polling, so the map recovers with the API.
     const sub = timer(0, REFRESH_MS)
       .pipe(
-        switchMap(() => this.rest.geojson()),
-        map(toMapFeatures),
-        startWith(null),
+        switchMap(() =>
+          this.rest.geojson().pipe(
+            map(toMapFeatures),
+            catchError(() => {
+              this.error.set('Sensor data could not be loaded. Is the API running?');
+              return EMPTY;
+            }),
+          ),
+        ),
       )
-      .subscribe({
-        next: (fc) => {
-          if (!fc) return;
-          this.all.set(fc);
-          this.ready.set(true);
-          this.error.set(null);
-        },
-        error: () => this.error.set('Sensor data could not be loaded. Is the API running?'),
+      .subscribe((fc) => {
+        this.all.set(fc);
+        this.ready.set(true);
+        this.error.set(null);
       });
     this.destroyRef.onDestroy(() => sub.unsubscribe());
   }

@@ -35,7 +35,7 @@ const toggle = <T>(list: readonly T[], item: T): T[] =>
         @for (t of types; track t) {
           <button
             type="button"
-            class="rounded-full px-2.5 py-1 ring-1"
+            class="rounded-full px-2.5 py-1 ring-1 transition-colors"
             [class]="
               filter().types.includes(t)
                 ? 'bg-indigo-500 text-white ring-indigo-400'
@@ -55,7 +55,7 @@ const toggle = <T>(list: readonly T[], item: T): T[] =>
         @for (s of statuses; track s) {
           <button
             type="button"
-            class="flex items-center gap-1.5 rounded-full px-2.5 py-1 ring-1"
+            class="flex items-center gap-1.5 rounded-full px-2.5 py-1 ring-1 transition-colors"
             [class]="
               filter().statuses.includes(s)
                 ? 'bg-slate-100 text-ink-950 ring-white'
@@ -74,9 +74,10 @@ const toggle = <T>(list: readonly T[], item: T): T[] =>
       <label class="flex items-center gap-1 text-slate-300">
         Region
         <select
+          #region
           class="rounded-md border border-slate-700 bg-slate-800 px-2 py-1 text-slate-100"
           data-testid="filter-region"
-          (change)="setRegion($any($event.target).value)"
+          (change)="setRegion(region.value)"
         >
           <option value="" [selected]="filter().regions.length === 0">All regions</option>
           @for (r of regions(); track r.region) {

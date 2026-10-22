@@ -4,11 +4,11 @@ import {
   computed,
   inject,
   input,
+  linkedSignal,
   output,
-  signal,
 } from '@angular/core';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { combineLatest, map, switchMap } from 'rxjs';
+import { map, switchMap } from 'rxjs';
 import {
   AreaSensorsGQL,
   AreaStatsGQL,
@@ -26,6 +26,7 @@ import {
 } from '../../../core/sensor-meta';
 import { completeData } from '../../../shared/complete';
 import { Icon } from '../../../shared/icon';
+import { Pager } from '../../../shared/pager';
 import { StatusBadge } from '../../../shared/status-badge';
 import { isEmptyFilter, type MapFilter } from '../state/map-filter';
 
@@ -44,7 +45,7 @@ export const toGraphQlFilter = (f: MapFilter): SensorFilter | null =>
 @Component({
   selector: 'app-area-stats-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [Icon, StatusBadge],
+  imports: [Icon, Pager, StatusBadge],
   template: `
     <aside
       class="flex h-full w-full flex-col overflow-y-auto border-l border-slate-800 bg-ink-900/95 backdrop-blur sm:w-96"
@@ -54,7 +55,7 @@ export const toGraphQlFilter = (f: MapFilter): SensorFilter | null =>
       <header class="flex items-start justify-between gap-3 border-b border-slate-800 p-4">
         <div>
           <h2 id="area-stats-title" class="text-lg font-semibold">Selected area</h2>
-          <p class="font-mono text-xs text-slate-400">{{ bboxLabel() }}</p>
+          <p class="font-mono text-xs text-slate-400" data-testid="area-bbox">{{ bboxLabel() }}</p>
         </div>
         <button
           type="button"
@@ -153,7 +154,7 @@ export const toGraphQlFilter = (f: MapFilter): SensorFilter | null =>
               <li>
                 <button
                   type="button"
-                  class="flex w-full items-center gap-2 py-2 text-left hover:bg-slate-800/50"
+                  class="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left hover:bg-slate-800/60"
                   (click)="sensorSelected.emit(e.node.id)"
                 >
                   <span class="flex-1">
@@ -169,33 +170,19 @@ export const toGraphQlFilter = (f: MapFilter): SensorFilter | null =>
               <li class="py-2 text-slate-500">No sensors match.</li>
             }
           </ul>
-          <div class="mt-2 flex items-center justify-between text-xs text-slate-400">
-            <span>
-              {{ cursors().length * pageSize + 1 }}–{{
-                cursors().length * pageSize + p.sensors.edges.length
-              }}
-              of
-              {{ count(p.sensors.totalCount) }}
-            </span>
-            <span class="flex gap-1">
-              <button
-                type="button"
-                class="rounded border border-slate-700 px-2 py-1 disabled:opacity-40"
-                [disabled]="cursors().length === 0"
-                (click)="cursors.set(cursors().slice(0, -1))"
-              >
-                Previous
-              </button>
-              <button
-                type="button"
-                class="rounded border border-slate-700 px-2 py-1 disabled:opacity-40"
-                [disabled]="!p.sensors.pageInfo.hasNextPage"
-                (click)="next(p.sensors.pageInfo.endCursor)"
-              >
-                Next
-              </button>
-            </span>
-          </div>
+          <app-pager
+            class="mt-2 text-xs"
+            compact
+            [pageIndex]="cursors().length"
+            [pageSize]="pageSize"
+            [shown]="p.sensors.edges.length"
+            [total]="p.sensors.totalCount"
+            [hasNext]="p.sensors.pageInfo.hasNextPage"
+            (previous)="cursors.set(cursors().slice(0, -1))"
+            (next)="next(p.sensors.pageInfo.endCursor)"
+          />
+        } @else {
+          <p class="text-xs text-slate-400" role="status">Loading sensors…</p>
         }
       </section>
     </aside>
@@ -211,12 +198,21 @@ export class AreaStatsPanel {
   private readonly statsGql = inject(AreaStatsGQL);
   private readonly sensorsGql = inject(AreaSensorsGQL);
   private readonly rest = inject(SensorsRestService);
-  protected readonly cursors = signal<string[]>([]);
   protected readonly pageSize = PAGE_SIZE;
 
   private readonly variables = computed(() => ({
     bbox: this.bbox(),
     filter: toGraphQlFilter(this.filter()),
+  }));
+  /** Page cursors; a new area or filter starts again at page 1. */
+  protected readonly cursors = linkedSignal({
+    source: this.variables,
+    computation: (): string[] => [],
+  });
+  private readonly pageVariables = computed(() => ({
+    ...this.variables(),
+    first: PAGE_SIZE,
+    after: this.cursors().at(-1) ?? null,
   }));
 
   protected readonly stats = toSignal(
@@ -228,11 +224,9 @@ export class AreaStatsPanel {
     ),
   );
   protected readonly page = toSignal(
-    combineLatest([toObservable(this.variables), toObservable(this.cursors)]).pipe(
-      switchMap(([v, cursors]) =>
-        this.sensorsGql
-          .watch({ variables: { ...v, first: PAGE_SIZE, after: cursors.at(-1) ?? null } })
-          .valueChanges.pipe(completeData<AreaSensorsQuery>()),
+    toObservable(this.pageVariables).pipe(
+      switchMap((variables) =>
+        this.sensorsGql.watch({ variables }).valueChanges.pipe(completeData<AreaSensorsQuery>()),
       ),
     ),
   );
@@ -251,13 +245,6 @@ export class AreaStatsPanel {
   protected readonly statusLabel = STATUS_LABELS;
   protected readonly statusColor = STATUS_COLORS;
   protected readonly typeLabel = TYPE_LABELS;
-
-  constructor() {
-    // A new area or filter starts again at page 1.
-    toObservable(this.variables).subscribe(() => {
-      if (this.cursors().length) this.cursors.set([]);
-    });
-  }
 
   protected next(cursor: string | null): void {
     if (cursor) this.cursors.update((c) => [...c, cursor]);

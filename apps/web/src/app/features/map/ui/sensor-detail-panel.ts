@@ -3,6 +3,7 @@ import {
   Component,
   computed,
   inject,
+  DestroyRef,
   input,
   output,
   signal,
@@ -15,7 +16,7 @@ import {
   type SensorDetailQuery,
 } from '../../../api/generated/graphql';
 import { formatCoordinates, formatValue, relativeTime } from '../../../core/format';
-import { METRIC_LABELS, TYPE_LABELS } from '../../../core/sensor-meta';
+import { METRIC_LABELS, SEVERITY_LABELS, TYPE_LABELS } from '../../../core/sensor-meta';
 import { completeData } from '../../../shared/complete';
 import { Icon } from '../../../shared/icon';
 import { Sparkline, type SparkPoint } from '../../../shared/sparkline';
@@ -89,7 +90,9 @@ const METRIC_COLORS: Record<Metric, string> = {
           </div>
           <div>
             <dt class="text-xs text-slate-500">Installed</dt>
-            <dd>{{ s.installedAt.slice(0, 10) }}</dd>
+            <dd>
+              <time [attr.datetime]="s.installedAt">{{ s.installedAt.slice(0, 10) }}</time>
+            </dd>
           </div>
           <div class="col-span-2">
             <dt class="text-xs text-slate-500">Coordinates</dt>
@@ -134,7 +137,7 @@ const METRIC_COLORS: Record<Metric, string> = {
                   : 'bg-amber-500/15 text-amber-200'
               "
             >
-              <strong>{{ a.severity }}</strong> · {{ a.message }}
+              <strong>{{ severityLabel[a.severity] }}</strong> · {{ a.message }}
               <span class="block text-slate-400">{{ ago(a.createdAt) }}</span>
             </p>
           } @empty {
@@ -154,6 +157,7 @@ export class SensorDetailPanel {
   readonly closed = output<void>();
   private readonly gql = inject(SensorDetailGQL);
   protected readonly copied = signal(false);
+  private copiedTimer: ReturnType<typeof setTimeout> | undefined;
 
   private readonly data = toSignal(
     toObservable(this.sensorId).pipe(
@@ -180,14 +184,20 @@ export class SensorDetailPanel {
   });
 
   protected readonly typeLabel = TYPE_LABELS;
+  protected readonly severityLabel = SEVERITY_LABELS;
   protected readonly color = METRIC_COLORS;
   protected readonly ago = relativeTime;
   protected readonly coords = formatCoordinates;
 
+  constructor() {
+    inject(DestroyRef).onDestroy(() => clearTimeout(this.copiedTimer));
+  }
+
   protected copy(lat: number, lon: number): void {
     void navigator.clipboard?.writeText(formatCoordinates(lat, lon)).then(() => {
       this.copied.set(true);
-      setTimeout(() => this.copied.set(false), 1500);
+      clearTimeout(this.copiedTimer);
+      this.copiedTimer = setTimeout(() => this.copied.set(false), 1500);
     });
   }
 }

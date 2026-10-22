@@ -1,4 +1,4 @@
-import type { Metric, SensorStatus, SensorType } from '../api/generated/graphql';
+import type { AlertSeverity, Metric, SensorStatus, SensorType } from '../api/generated/graphql';
 
 /** Status colours shared by the map layers, legend and badges (WCAG AA on the dark UI). */
 export const STATUS_COLORS: Record<SensorStatus, string> = {
@@ -37,6 +37,11 @@ export const METRIC_LABELS: Record<Metric, string> = {
   HUMIDITY: 'Humidity',
   NOISE: 'Noise',
   PM25: 'PM2.5',
+};
+
+export const SEVERITY_LABELS: Record<AlertSeverity, string> = {
+  CRITICAL: 'Critical',
+  WARNING: 'Warning',
 };
 
 export const SENSOR_STATUSES: readonly SensorStatus[] = [

@@ -27,3 +27,42 @@ body {
   outline: 2px solid #818cf8;
   outline-offset: 2px;
 }
+
+/* Shared building blocks for the list/table pages and side panels. */
+@layer components {
+  .page {
+    @apply mx-auto max-w-6xl space-y-4 p-6;
+  }
+  .page-title {
+    @apply text-2xl font-semibold tracking-tight;
+  }
+  .card {
+    @apply rounded-xl border border-slate-800 bg-ink-900;
+  }
+  .btn {
+    @apply inline-flex items-center gap-1.5 rounded-md border border-slate-700 px-3 py-1.5 text-sm text-slate-200 transition-colors hover:bg-slate-800 disabled:pointer-events-none disabled:opacity-40;
+  }
+  .btn-sm {
+    @apply px-2 py-1 text-xs;
+  }
+  .input {
+    @apply rounded-md border border-slate-700 bg-ink-900 px-3 py-1.5 text-sm text-slate-100 placeholder:text-slate-500;
+  }
+  .data-table {
+    @apply w-full text-left text-sm;
+
+    & thead {
+      @apply text-xs uppercase tracking-wide text-slate-400;
+    }
+    & th,
+    & td {
+      @apply px-4 py-2 align-middle;
+    }
+    & tbody tr {
+      @apply border-t border-slate-800 transition-colors hover:bg-slate-800/40;
+    }
+    & tbody th {
+      @apply font-normal;
+    }
+  }
+}

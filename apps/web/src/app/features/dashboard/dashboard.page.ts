@@ -9,45 +9,48 @@ import { completeData } from '../../shared/complete';
   selector: 'app-dashboard-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="mx-auto max-w-6xl space-y-6 p-6">
-      <h1 class="text-2xl font-semibold">Dashboard</h1>
+    <section class="page space-y-6">
+      <h1 class="page-title">Dashboard</h1>
       @if (data(); as d) {
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           @for (m of d.sensorStats.averages; track m.metric) {
-            <article class="rounded-xl border border-slate-800 bg-ink-900 p-4">
+            <article class="card p-4">
               <h2 class="text-xs uppercase tracking-wide text-slate-400">
                 Avg {{ metricLabel[m.metric] }}
               </h2>
               <p class="mt-1 text-2xl font-semibold tabular-nums">
                 {{ value(m.average, m.unit, m.metric) }}
               </p>
-              <p class="text-xs text-slate-500">{{ m.sampleSize }} sensors reporting</p>
+              <p class="text-xs text-slate-500">{{ count(m.sampleSize) }} sensors reporting</p>
             </article>
           }
         </div>
 
         <div class="grid gap-4 lg:grid-cols-2">
-          <article class="rounded-xl border border-slate-800 bg-ink-900 p-4">
+          <article class="card p-4">
             <h2 class="mb-3 font-medium">Status</h2>
             <ul class="space-y-2">
               @for (s of d.sensorStats.byStatus; track s.status) {
                 <li class="flex items-center gap-3 text-sm">
                   <span class="w-24 text-slate-300">{{ statusLabel[s.status] }}</span>
-                  <span class="h-2 flex-1 overflow-hidden rounded bg-slate-800">
+                  <span class="h-2 flex-1 overflow-hidden rounded bg-slate-800" aria-hidden="true">
                     <span
                       class="block h-full"
-                      [style.width.%]="(s.count / d.sensorStats.total) * 100"
+                      [style.width.%]="share(s.count, d.sensorStats.total)"
                       [style.background]="statusColor[s.status]"
                     ></span>
                   </span>
-                  <span class="w-24 text-right tabular-nums"
-                    >{{ count(s.count) }} · {{ pct(s.count, d.sensorStats.total) }}</span
+                  <span class="w-32 text-right whitespace-nowrap tabular-nums"
+                    >{{ count(s.count) }}
+                    <span class="text-slate-400"
+                      >· {{ pct(s.count, d.sensorStats.total) }}</span
+                    ></span
                   >
                 </li>
               }
             </ul>
           </article>
-          <article class="rounded-xl border border-slate-800 bg-ink-900 p-4">
+          <article class="card p-4">
             <h2 class="mb-3 font-medium">Sensor types</h2>
             <ul class="space-y-2 text-sm">
               @for (t of d.sensorStats.byType; track t.type) {
@@ -60,13 +63,13 @@ import { completeData } from '../../shared/complete';
           </article>
         </div>
 
-        <article class="rounded-xl border border-slate-800 bg-ink-900 p-4">
-          <h2 class="mb-3 font-medium">Regions (maakunnat)</h2>
+        <article class="card overflow-hidden">
+          <h2 class="px-4 pt-4 pb-2 font-medium">Regions (maakunnat)</h2>
           <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm">
-              <thead class="text-xs uppercase text-slate-400">
+            <table class="data-table">
+              <thead>
                 <tr>
-                  <th scope="col" class="py-2">Region</th>
+                  <th scope="col">Region</th>
                   <th scope="col" class="text-right">Sensors</th>
                   <th scope="col" class="text-right">Online</th>
                   <th scope="col" class="text-right">Alert</th>
@@ -74,8 +77,8 @@ import { completeData } from '../../shared/complete';
               </thead>
               <tbody>
                 @for (r of regionsBySize(); track r.region) {
-                  <tr class="border-t border-slate-800">
-                    <th scope="row" class="py-2 font-normal">{{ r.region }}</th>
+                  <tr>
+                    <th scope="row">{{ r.region }}</th>
                     <td class="text-right tabular-nums">{{ count(r.sensorCount) }}</td>
                     <td class="text-right tabular-nums text-emerald-400">
                       {{ count(r.onlineCount) }}
@@ -88,7 +91,7 @@ import { completeData } from '../../shared/complete';
           </div>
         </article>
       } @else {
-        <p class="text-slate-400" role="status">Loading…</p>
+        <p class="text-slate-400" role="status">Loading dashboard…</p>
       }
     </section>
   `,
@@ -109,4 +112,8 @@ export class DashboardPage {
   protected readonly value = formatValue;
   protected readonly count = formatCount;
   protected readonly pct = formatPercent;
+
+  protected share(part: number, total: number): number {
+    return total > 0 ? (part / total) * 100 : 0;
+  }
 }

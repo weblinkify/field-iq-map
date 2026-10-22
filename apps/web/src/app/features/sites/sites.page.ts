@@ -1,7 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
+import { map } from 'rxjs';
 import { SitesGQL, type SitesQuery } from '../../api/generated/graphql';
+import { formatCount } from '../../core/format';
 import { completeData } from '../../shared/complete';
 
 @Component({
@@ -9,65 +11,91 @@ import { completeData } from '../../shared/complete';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink],
   template: `
-    <section class="mx-auto max-w-6xl space-y-4 p-6">
+    <section class="page">
       <div class="flex flex-wrap items-end justify-between gap-3">
-        <h1 class="text-2xl font-semibold">Sites</h1>
-        <label class="text-sm text-slate-300"
-          >Search
+        <h1 class="page-title">Sites</h1>
+        <label class="flex items-center gap-2 text-sm text-slate-300">
+          <span class="sr-only">Search sites</span>
           <input
+            #q
             type="search"
-            class="ml-2 rounded-md border border-slate-700 bg-ink-900 px-3 py-1.5 text-slate-100"
+            class="input w-72"
+            placeholder="Search site, municipality or region"
             [value]="query()"
-            (input)="query.set($any($event.target).value)"
-        /></label>
+            (input)="query.set(q.value)"
+          />
+        </label>
       </div>
-      <p class="text-sm text-slate-400">{{ filtered().length }} monitoring sites</p>
-      <div class="overflow-x-auto rounded-xl border border-slate-800 bg-ink-900">
-        <table class="w-full text-left text-sm">
-          <thead class="text-xs uppercase text-slate-400">
-            <tr>
-              <th scope="col" class="px-4 py-2">Site</th>
-              <th scope="col">Municipality</th>
-              <th scope="col">Region</th>
-              <th scope="col" class="text-right">Sensors</th>
-              <th scope="col" class="px-4 text-right">Map</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (s of filtered(); track s.id) {
-              <tr class="border-t border-slate-800">
-                <th scope="row" class="px-4 py-2 font-normal">{{ s.name }}</th>
-                <td>{{ s.municipality }}</td>
-                <td>{{ s.region }}</td>
-                <td class="text-right tabular-nums">{{ s.sensorCount }}</td>
-                <td class="px-4 text-right">
-                  <a
-                    class="text-indigo-300 hover:underline"
-                    routerLink="/map"
-                    [queryParams]="{ bbox: around(s.location.lat, s.location.lon) }"
-                    >Show</a
-                  >
-                </td>
+      @if (sites(); as all) {
+        <p class="text-sm text-slate-400">
+          {{ count(filtered().length) }}
+          @if (filtered().length !== all.length) {
+            of {{ count(all.length) }}
+          }
+          monitoring sites
+        </p>
+        <div class="card overflow-x-auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th scope="col">Site</th>
+                <th scope="col">Municipality</th>
+                <th scope="col">Region</th>
+                <th scope="col" class="text-right">Sensors</th>
+                <th scope="col" class="text-right"><span class="sr-only">Map</span></th>
               </tr>
-            }
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              @for (s of filtered(); track s.id) {
+                <tr>
+                  <th scope="row">{{ s.name }}</th>
+                  <td>{{ s.municipality }}</td>
+                  <td>{{ s.region }}</td>
+                  <td class="text-right tabular-nums">{{ count(s.sensorCount) }}</td>
+                  <td class="text-right">
+                    <a
+                      class="text-indigo-300 hover:underline"
+                      routerLink="/map"
+                      [queryParams]="{ bbox: around(s.location.lat, s.location.lon) }"
+                      [attr.aria-label]="'Show ' + s.name + ' on the map'"
+                      >Show on map</a
+                    >
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="5" class="py-8 text-center text-slate-400">
+                    No sites match “{{ query() }}”.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <p class="text-slate-400" role="status">Loading sites…</p>
+      }
     </section>
   `,
 })
 export class SitesPage {
   protected readonly query = signal('');
-  private readonly sites = toSignal(
-    inject(SitesGQL).watch().valueChanges.pipe(completeData<SitesQuery>()),
+  protected readonly sites = toSignal(
+    inject(SitesGQL)
+      .watch()
+      .valueChanges.pipe(
+        completeData<SitesQuery>(),
+        map((d) => d.sites),
+      ),
   );
   protected readonly filtered = computed(() => {
     const q = this.query().trim().toLowerCase();
-    const all = this.sites()?.sites ?? [];
+    const all = this.sites() ?? [];
     return q
       ? all.filter((s) => `${s.name} ${s.municipality} ${s.region}`.toLowerCase().includes(q))
       : all;
   });
+  protected readonly count = formatCount;
 
   /** ~5 km box around a site, as a shareable map bbox. */
   protected around(lat: number, lon: number): string {
